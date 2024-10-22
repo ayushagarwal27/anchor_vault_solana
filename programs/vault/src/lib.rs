@@ -3,12 +3,22 @@ use anchor_lang::system_program::{transfer, Transfer};
 
 declare_id!("9o4VEobrYnMUAhanBsRxvrwu8wTfQFCpHeHN6YxX5FWX");
 
-// #[program]
+#[program]
 pub mod vault {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         ctx.accounts.initialize(&ctx.bumps)?;
+        Ok(())
+    }
+
+    pub fn deposit(ctx: Context<Payment>, amount:u64) -> Result<()> {
+        ctx.accounts.deposit(amount)?;
+        Ok(())
+    }
+
+    pub fn withdraw(ctx: Context<Payment>, amount:u64) -> Result<()> {
+        ctx.accounts.withdraw(amount)?;
         Ok(())
     }
 }
@@ -80,7 +90,22 @@ impl<'info> Payment <'info> {
         Ok(())
     }
 
+    pub fn withdraw(&mut self, amount:u64) -> Result<()>{
+        let cpi_program = self.system_program.to_account_info();
+        let cpi_accounts = Transfer {
+            from: self.vault.to_account_info(),
+            to: self.user.to_account_info(),
+        };
 
+        let seeds = &[b"vault", self.vault_state.to_account_info().key.as_ref(), &[self.vault_state.vault_bump]];
+        let signer_seeds = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
+
+        transfer(cpi_ctx, amount)?;
+
+        Ok(())
+    }
 }
 
 
