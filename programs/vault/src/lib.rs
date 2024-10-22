@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 
 declare_id!("9o4VEobrYnMUAhanBsRxvrwu8wTfQFCpHeHN6YxX5FWX");
 
@@ -7,7 +8,7 @@ pub mod vault {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
+        ctx.accounts.initialize(&ctx.bumps)?;
         Ok(())
     }
 }
@@ -33,6 +34,53 @@ pub struct Initialize<'info> {
     pub vault: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>
+}
+
+impl<'info> Initialize <'info> {
+    pub fn initialize(&mut self, bumps:&InitializeBumps) -> Result<()>{
+        self.vault_state.vault_bump = bumps.vault;
+        self.vault_state.state_bump = bumps.vault_state;
+        Ok(())
+    }
+}
+
+#[derive(Accounts)]
+pub struct Payment<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(
+        seeds = [b"state", user.as_key().as_ref()],
+        bump = vault_state.state_bump,
+    )]
+    pub vault_state:Account<'info, VaultState>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", vault_state.as_key().as_ref()],
+        bump = vault_state.vault_bump,
+    )]
+    pub vault: SystemAccount<'info>,
+
+    pub system_program: Program<'info, System>
+}
+
+impl<'info> Payment <'info> {
+    pub fn deposit(&mut self, amount:u64) -> Result<()>{
+        let cpi_program = self.system_program.to_account_info();
+        let cpi_accounts = Transfer {
+            from: self.user.to_account_info(),
+            to: self.vault.to_account_info()
+        };
+
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+
+        transfer(cpi_ctx, amount)?;
+
+        Ok(())
+    }
+
+
 }
 
 
