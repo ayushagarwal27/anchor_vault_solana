@@ -3,7 +3,7 @@ use anchor_lang::system_program::{transfer, Transfer};
 
 declare_id!("9o4VEobrYnMUAhanBsRxvrwu8wTfQFCpHeHN6YxX5FWX");
 
-// #[program]
+#[program]
 pub mod vault {
     use super::*;
 
@@ -36,14 +36,14 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = user,
-        seeds = [b"state", user.as_key().as_ref()],
+        seeds = [b"state", user.key().as_ref()],
         bump,
         space = 8 + VaultState::INIT_SPACE
     )]
     pub vault_state:Account<'info, VaultState>,
 
     #[account(
-        seeds = [b"vault", vault_state.as_key().as_ref()],
+        seeds = [b"vault", vault_state.key().as_ref()],
         bump,
     )]
     pub vault: SystemAccount<'info>,
@@ -65,14 +65,14 @@ pub struct Payment<'info> {
     pub user: Signer<'info>,
 
     #[account(
-        seeds = [b"state", user.as_key().as_ref()],
+        seeds = [b"state", user.key().as_ref()],
         bump = vault_state.state_bump,
     )]
     pub vault_state:Account<'info, VaultState>,
 
     #[account(
         mut,
-        seeds = [b"vault", vault_state.as_key().as_ref()],
+        seeds = [b"vault", vault_state.key().as_ref()],
         bump = vault_state.vault_bump,
     )]
     pub vault: SystemAccount<'info>,
@@ -119,7 +119,7 @@ pub struct Close<'info> {
 
     #[account(
         mut,
-        seeds = [b"state", user.as_key().as_ref()],
+        seeds = [b"state", user.key().as_ref()],
         bump = vault_state.state_bump,
         close = user
     )]
@@ -127,7 +127,7 @@ pub struct Close<'info> {
 
     #[account(
         mut,
-        seeds = [b"vault", vault_state.as_key().as_ref()],
+        seeds = [b"vault", vault_state.key().as_ref()],
         bump = vault_state.vault_bump,
     )]
     pub vault: SystemAccount<'info>,
